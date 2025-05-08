@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
-import { Geist_Sans, Geist_Mono } from "@next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist_Sans({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -27,11 +22,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/pdf.svg" type="image/svg+xml" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body className={`${geistMono.variable} antialiased`}>{children}</body>
     </html>
   );
 }
