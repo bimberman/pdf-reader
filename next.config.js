@@ -2,6 +2,7 @@
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  swcMinify: true,
   webpack: (config) => {
     config.resolve.alias.canvas = false;
     config.resolve.fallback = {
