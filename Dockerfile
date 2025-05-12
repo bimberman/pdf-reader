@@ -1,5 +1,5 @@
 # Use Node.js LTS version
-FROM node:20-alpine AS base
+FROM node:20-alpine3.18 as builder
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -8,7 +8,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies
+# Clean Install dependencies
 RUN npm ci
 
 # Rebuild the source code only when needed
@@ -20,6 +20,7 @@ COPY . .
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
+# Set to 1 to opt-out
 ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN npm run build
@@ -51,4 +52,4 @@ EXPOSE 5253
 ENV PORT 5253
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"] 
+CMD ["npm", "run", "start"]
