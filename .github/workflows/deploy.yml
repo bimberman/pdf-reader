@@ -1,4 +1,4 @@
-name: Deploy to AWS
+name: Deploy to EC2
 
 on:
   push:
@@ -9,10 +9,8 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: pdf-reader
-  ECS_SERVICE: pdf-reader-service
-  ECS_CLUSTER: pdf-reader-cluster
-  ECS_TASK_DEFINITION: pdf-reader-task
-  CONTAINER_NAME: pdf-reader
+  EC2_HOST: ${{ secrets.EC2_HOST }}
+  EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
 
 jobs:
   deploy:
@@ -45,18 +43,27 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@master
         with:
-          task-definition: task-definition.json
-          container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Login to ECR
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
 
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+            # Pull the new image
+            docker pull ${{ steps.build-image.outputs.image }}
+
+            # Stop and remove the old container if it exists
+            docker stop pdf-reader || true
+            docker rm pdf-reader || true
+
+            # Run the new container
+            docker run -d \
+              --name pdf-reader \
+              --restart unless-stopped \
+              -p 5253:5253 \
+              -e NODE_ENV=production \
+              ${{ steps.build-image.outputs.image }}
