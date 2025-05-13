@@ -5,7 +5,7 @@ export default function Home() {
     <main className="min-h-screen bg-gray-50">
       <div className="container mx-auto py-12">
         <h1 className="text-4xl text-gray-900 font-bold text-center">
-          PDF Scanner
+          PDF Reader
         </h1>
         <p className="text-center text-gray-600 mb-12">
           Upload a PDF to extract text
