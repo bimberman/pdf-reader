@@ -9,8 +9,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: pdf-reader
-  EC2_HOST: ${{ secrets.EC2_HOST }}
-  EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+  INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
 
 jobs:
   deploy:
@@ -43,27 +42,19 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            # Login to ECR
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-
-            # Pull the new image
-            docker pull ${{ steps.build-image.outputs.image }}
-
-            # Stop and remove the old container if it exists
-            docker stop pdf-reader || true
-            docker rm pdf-reader || true
-
-            # Run the new container
-            docker run -d \
-              --name pdf-reader \
-              --restart unless-stopped \
-              -p 5253:5253 \
-              -e NODE_ENV=production \
-              ${{ steps.build-image.outputs.image }}
+      - name: Deploy to EC2 using Session Manager
+        run: |
+          # Login to ECR on the instance
+          aws ssm send-command \
+            --instance-ids ${{ env.INSTANCE_ID }} \
+            --document-name "AWS-RunShellScript" \
+            --parameters "commands=[
+              'aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}',
+              'docker pull ${{ steps.build-image.outputs.image }}',
+              'docker stop pdf-reader || true',
+              'docker rm pdf-reader || true',
+              'docker run -d --name pdf-reader --restart unless-stopped -p 5253:5253 -e NODE_ENV=production ${{ steps.build-image.outputs.image }}'
+            ]" \
+            --output-s3-bucket-name ${{ secrets.S3_BUCKET_NAME }} \
+            --output-s3-key-prefix "deploy-logs" \
+            --region ${{ env.AWS_REGION }}
