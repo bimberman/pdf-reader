@@ -10,6 +10,9 @@ const nextConfig = {
     };
     return config;
   },
+  env: {
+    PORT: 5253,
+  },
 };
 
 module.exports = nextConfig;
