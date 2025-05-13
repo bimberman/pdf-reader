@@ -10,6 +10,13 @@ const nextConfig = {
     };
     return config;
   },
+  env: {
+    PORT: 5253,
+  },
+  // Enable HTTPS in production
+  server: {
+    https: process.env.NODE_ENV === "production",
+  },
 };
 
 module.exports = nextConfig;
