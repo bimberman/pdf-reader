@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
+import { GeistMono } from "geist/font";
+import { GeistSans } from "geist/font";
 import "./globals.css";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistMono = GeistMono;
+const geistSans = GeistSans;
 
 export const metadata: Metadata = {
   title: "PDF Reader",
@@ -22,7 +21,11 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/pdf.svg" type="image/svg+xml" />
       </head>
-      <body className={`${geistMono.variable} antialiased`}>{children}</body>
+      <body
+        className={`${geistSans.className} ${geistMono.className} antialiased`}
+      >
+        {children}
+      </body>
     </html>
   );
 }
